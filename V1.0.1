@@ -1,0 +1,121 @@
+import numpy as np
+import matplotlib.pyplot as pyp
+import networkx as nx
+#generate a maze
+maze = nx.grid_2d_graph(3,3)
+maze = nx.convert_node_labels_to_integers(maze)
+#finish
+activation_history = {node: [] for node in maze.nodes}#create a dictionary to store the activation value of each node, used in the reward function
+#define weights
+weights_original = {edge:0.5 for edge in maze.edges}
+weights_reward = {edge:0.5 for edge in maze.edges}
+activations = {node:0 for node in maze.nodes}
+#finish
+#record path weights
+original_path_weights = []
+reward_path_weights =[]
+#draw the maze
+def visualize_maze (maze, weights):
+    pos = nx.spring_layout(maze)#a dataset records all nodes, the nodes are distributed evenly
+    edge_colors = [weights[edge] for edge in maze.edges]
+    nx.draw(maze, pos, with_labels = True, edge_color = edge_colors, edge_cmap = pyp.cm.Blues, width = 2)
+    pyp.show()
+#finish
+learning_rate = 0.1 #define learning rate
+#run trail using original method
+def run_trial_original(maze, start, end, weights_original):
+    path = [start]
+    current_node = start
+    path_weights_sum = 0 #record path weights
+    reached_end = False
+    while current_node != end :
+        neighbors = list(maze.neighbors(current_node))
+        next_node = np.random.choice(neighbors)
+        path.append(next_node)
+        edge = tuple (sorted((current_node,next_node)))
+        current_node = next_node
+        #check if the mouse reaches the end
+        if current_node == end:
+            reached_end = True
+            break
+    if reached_end:
+        for i in range(len(path) - 1):
+            edge = tuple(sorted((path[i], path[i + 1])))
+            ai = np.random.uniform(0,1) # if i use rand(), then the interval is [0,1), now it's [0,1]
+            aj = np.random.uniform(0,1)
+            weights_original[edge] += learning_rate*ai*aj
+            path_weights_sum+= weights_original[edge]
+        original_path_weights.append(path_weights_sum)
+    else:
+        original_path_weights.append(0)
+
+    return path
+#end
+#run trail using reward method
+def run_trial_reward(maze, start, end, weights_reward):
+    path = [start]
+    current_node = start
+    path_weights_sum = 0
+    reached_end = False
+    while current_node != end:
+        neighbors = list(maze.neighbors(current_node))
+        next_node = np.random.choice(neighbors)
+        path.append(next_node)
+        edge = tuple (sorted((current_node,next_node)))
+        current_node = next_node
+        if current_node == end:
+            reached_end = True
+            break
+    if reached_end:
+        for i in range(len(path) - 1):
+             ai = np.random.uniform(0,1)
+             aj = np.random.uniform(0,1)
+             activation_history[current_node].append(ai)
+             activation_history[next_node].append(aj)
+             ai_bar = np.mean(activation_history[current_node])
+             aj_bar = np.mean(activation_history[next_node])
+             weights_reward[edge] += learning_rate*(ai-ai_bar)*(aj-aj_bar)
+             path_weights_sum += weights_reward[edge]
+        reward_path_weights.append(path_weights_sum)
+    else:
+         reward_path_weights.append(0)
+    
+    return path
+        #finish
+#trails for original
+num_trials = 100
+start_node = 0
+end_node = 8
+for _ in range(num_trials):
+    path = run_trial_original(maze, start_node, end_node,weights_original)
+visualize_maze(maze, weights_original)
+
+for edge,weight in weights_original.items():
+    print(f"the paths is:{edge}, and the weight is:{weight:.3f}")
+print("Above is original trial")
+
+#trials for reward
+num_trials = 100
+start_node = 0
+end_node = 8
+for _ in range(num_trials):
+    path = run_trial_reward(maze, start_node, end_node,weights_reward)
+visualize_maze(maze, weights_reward)
+
+for edge,weight in weights_reward.items():
+    print(f"the paths is:{edge}, and the weight is:{weight:.3f}")
+print("this trial ends here")
+#plot weights sum for each trial， note: this only display the highest weighted route, that means it's not always the same route
+pyp.plot(range(num_trials),original_path_weights,label = "original method")
+pyp.plot(range(num_trials),reward_path_weights, label = "reward method" )
+pyp.xlabel("Trial")
+pyp.ylabel("weight")
+pyp.legend()
+pyp.show()
+# what do I have to do next?
+#set up a maze that has random node in it
+
+
+
+
+
