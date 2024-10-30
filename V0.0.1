@@ -1,0 +1,73 @@
+import numpy as np #import numpy package, numpy is a package used to simulate neural networks
+import matplotlib.pyplot as pyp#import matplotlib package, this is a package used to draw picture
+import networkx as nx#also a package to simulate neural networks
+#generate a maze
+maze = nx.grid_2d_graph(3,3)#create a 3*3 maze
+maze = nx.convert_node_labels_to_integers(maze)
+#finish
+#define weights
+weights = {edge:0.5 for edge in maze.edges}#0.5 is an arbitratry number between 0 and 1
+activations = {node:0 for node in maze.nodes}#used to capture node activation, between 0-1, float number
+#finish
+#draw the maze
+def visualize_maze (maze, weights):
+    pos = nx.spring_layout(maze)#a dataset records all nodes, the nodes are distributed evenly
+    edge_colors = [weights[edge] for edge in maze.edges]#
+    nx.draw(maze, pos, with_labels = True, edge_color = edge_colors, edge_cmap = pyp.cm.Blues, width = 2)
+    pyp.show()
+#finish
+learning_rate = 0.3 #define learning rate
+#run trail using original method
+def run_trial_original(maze, start, end, weights):
+    path = [start]
+    current_node = start
+    while current_node != end :
+        neighbors = list(maze.neighbors(current_node))
+        next_node = np.random.choice(neighbors)
+        path.append(next_node)
+        edge = tuple (sorted((current_node,next_node)))
+        ai = 1
+        aj = 1
+        weights[edge] += learning_rate*ai*aj
+        current_node = next_node
+    return path
+#end
+#run trail using reward method
+def run_trial_reward(maze, start, end, weights):
+    path = [start]
+    current_node = start
+    while current_node != end:
+        neighbors = list(maze.neighbors(current_node))
+        next_node = np.random.choice(neighbors)
+        path.append(next_node)
+        edge = tuple (sorted((current_node,next_node)))
+        ai = 1
+        aj = 1
+        # I have to adjust ai and aj each trial somehow
+        ai_bar = np.mean(ai)
+        aj_bar = np.mean(aj)
+        weights[edge] += learning_rate*(ai-ai_bar)*(aj-aj_bar)
+        current_node = next_node
+        #finish
+#trails for original
+num_trials = 100
+start_node = 0
+end_node = 8
+for _ in range(num_trials):
+    path = run_trial_original(maze, start_node, end_node,weights)
+visualize_maze(maze, weights)
+
+for edge,weight in weights.items():
+    print(f"the paths is:{edge}, and the weight is:{weight:.3f}")
+print("Above is original trial")
+#trials for reward
+num_trials = 100
+start_node = 0
+end_node = 8
+for _ in range(num_trials):
+    path = run_trial_reward(maze, start_node, end_node,weights)
+visualize_maze(maze, weights)
+
+for edge,weight in weights.items():
+    print(f"the paths is:{edge}, and the weight is:{weight:.3f}")
+print("this trial ends here")
