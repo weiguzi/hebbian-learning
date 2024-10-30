@@ -1,0 +1,84 @@
+import numpy as np
+import matplotlib.pyplot as pyp
+import networkx as nx
+#generate a maze
+maze = nx.grid_2d_graph(3,3)
+maze = nx.convert_node_labels_to_integers(maze)
+#finish
+#define weights
+weights = {edge:0.5 for edge in maze.edges}
+activations = {node:0 for node in maze.nodes}
+#finish
+#draw the maze
+def visualize_maze (maze, weights):
+    pos = nx.spring_layout(maze)#a dataset records all nodes, the nodes are distributed evenly
+    edge_colors = [weights[edge] for edge in maze.edges]
+    nx.draw(maze, pos, with_labels = True, edge_color = edge_colors, edge_cmap = pyp.cm.Blues, width = 2)
+    pyp.show()
+#finish
+learning_rate = 0.3 #define learning rate
+#run trail using original method
+def run_trial_original(maze, start, end, weights):
+    path = [start]
+    current_node = start
+    while current_node != end :
+        neighbors = list(maze.neighbors(current_node))
+        next_node = np.random.choice(neighbors)
+        path.append(next_node)
+        edge = tuple (sorted((current_node,next_node)))
+        ai = np.random.uniform(0,1) # if i use rand(), then the interval is [0,1), now it's [0,1]
+        aj = np.random.uniform(0,1)
+        weights[edge] += learning_rate*ai*aj
+        current_node = next_node
+    return path
+#end
+#run trail using reward method
+def run_trial_reward(maze, start, end, weights):
+    path = [start]
+    current_node = start
+    ai_values = []# ！！！no, this would be a shared set for every node, I have to avoid this
+    aj_values = []
+    while current_node != end:
+        neighbors = list(maze.neighbors(current_node))
+        next_node = np.random.choice(neighbors)
+        path.append(next_node)
+        edge = tuple (sorted((current_node,next_node)))
+        ai = np.random.uniform(0,1)
+        aj = np.random.uniform(0,1)
+        ai_values.append(ai)
+        aj_values.append(aj)
+        ai_bar = np.mean(ai_values)
+        aj_bar = np.mean(aj_values)
+        weights[edge] += learning_rate*(ai-ai_bar)*(aj-aj_bar)
+        current_node = next_node
+        #finish
+#trails for original
+num_trials = 100
+start_node = 0
+end_node = 8
+for _ in range(num_trials):
+    path = run_trial_original(maze, start_node, end_node,weights)
+visualize_maze(maze, weights)
+
+for edge,weight in weights.items():
+    print(f"the paths is:{edge}, and the weight is:{weight:.3f}")
+print("Above is original trial")
+#trials for reward
+num_trials = 100
+start_node = 0
+end_node = 8
+for _ in range(num_trials):
+    path = run_trial_reward(maze, start_node, end_node,weights)
+visualize_maze(maze, weights)
+
+for edge,weight in weights.items():
+    print(f"the paths is:{edge}, and the weight is:{weight:.3f}")
+print("this trial ends here")
+
+
+# what do I have to do next?
+#record the weight for each trial and visualize it
+#set up a maze that has random node in it
+
+# currently, the mouse doesn't necessarily reach the end, so the weight of edges next to 8 is way too small, the solution is to make sure the mouse reachs 8 every time
+
